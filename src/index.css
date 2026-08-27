@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@theme {
+  --color-beige-50: #faf8f4;
+  --color-beige-100: #f5f0e8;
+  --color-beige-200: #ede5d6;
+  --color-beige-300: #dfd4be;
+  --color-beige-400: #c9b89c;
+  --color-beige-500: #b39d7d;
+  --color-beige-600: #9a8468;
+  --color-beige-700: #7d6a54;
+  --color-beige-800: #605042;
+  --color-beige-900: #43382e;
+
+  --color-matcha-50: #f0f5f2;
+  --color-matcha-100: #dce8e0;
+  --color-matcha-200: #b8d1c1;
+  --color-matcha-300: #8fb8a0;
+  --color-matcha-400: #6a9e82;
+  --color-matcha-500: #4d7d64;
+  --color-matcha-600: #3d6450;
+  --color-matcha-700: #2d4a3e;
+  --color-matcha-800: #1f3329;
+  --color-matcha-900: #121f19;
+
+  --color-gold-50: #fdf8eb;
+  --color-gold-100: #faefd0;
+  --color-gold-200: #f5dea1;
+  --color-gold-300: #edc96d;
+  --color-gold-400: #e5b440;
+  --color-gold-500: #d4a028;
+  --color-gold-600: #b3831e;
+  --color-gold-700: #8a6419;
+  --color-gold-800: #6b4e18;
+  --color-gold-900: #4a3612;
+
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-beige-50 text-matcha-900 font-sans antialiased;
+    font-feature-settings: 'ss01', 'ss02';
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-serif;
+  }
+
+  code, .mono {
+    @apply font-mono;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-beige-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-matcha-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-matcha-400;
+}
+
+/* Map container fix */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+}
+
+/* Bottom sheet */
+.bottom-sheet {
+  transition: transform 0.3s ease-out;
+}
+
+/* Page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
