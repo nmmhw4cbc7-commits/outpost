@@ -1,4 +1,3 @@
-import { MapPin } from 'lucide-react'
 import type { OSMPlace } from '../../services/places'
 
 interface PlaceCardProps {

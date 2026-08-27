@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Search, SlidersHorizontal, MapPin, ChevronDown, Loader2 } from 'lucide-react'
+import { Search, MapPin, ChevronDown, Loader2 } from 'lucide-react'
 import type { Coordinates } from '../lib/geo'
 import type { OSMPlace } from '../services/places'
 import { searchNearbyPlaces } from '../services/places'
