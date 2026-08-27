@@ -15,32 +15,14 @@ export interface OSMPlace {
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 
-const LARP_TYPES: Record<string, string[]> = {
-  cafe: ['cafe', 'coffee'],
-  library: ['library'],
-  coworking_space: ['coworking_space'],
-  restaurant: ['restaurant', 'bar', 'pub'],
-  university: ['university', 'college', 'school'],
-  hotel: ['hotel', 'motel', 'hostel'],
-  bakery: ['bakery'],
-  other: ['community_centre', 'internet_cafe', 'food_court']
-}
-
 function buildOverpassQuery(center: Coordinates, radiusMeters: number): string {
-  const allTypes = Object.values(LARP_TYPES).flat()
-  const amenityFilter = allTypes.map(t => `["amenity"="${t}"]`).join('')
-  const tourismFilter = `["tourism"~"hotel|hostel|motel"]`
-  const leisureFilter = `["leisure"~"coworking_space|community_centre"]`
-
   return `
-[out:json][timeout:15];
+[out:json][timeout:20];
 (
-  node${amenityFilter}(around:${radiusMeters},${center.lat},${center.lng});
-  way${amenityFilter}(around:${radiusMeters},${center.lat},${center.lng});
-  node${tourismFilter}(around:${radiusMeters},${center.lat},${center.lng});
-  way${tourismFilter}(around:${radiusMeters},${center.lat},${center.lng});
-  node${leisureFilter}(around:${radiusMeters},${center.lat},${center.lng});
-  way${leisureFilter}(around:${radiusMeters},${center.lat},${center.lng});
+  node["amenity"~"cafe|coffee|library|restaurant|bar|pub|university|college|school|bakery|community_centre|internet_cafe|food_court"](around:${radiusMeters},${center.lat},${center.lng});
+  way["amenity"~"cafe|coffee|library|restaurant|bar|pub|university|college|school|bakery|community_centre|internet_cafe|food_court"](around:${radiusMeters},${center.lat},${center.lng});
+  node["tourism"~"hotel|hostel|motel"](around:${radiusMeters},${center.lat},${center.lng});
+  way["tourism"~"hotel|hostel|motel"](around:${radiusMeters},${center.lat},${center.lng});
 );
 out center tags;
 `
@@ -49,7 +31,6 @@ out center tags;
 function mapOSMType(tags: Record<string, string>): string {
   const amenity = tags.amenity || ''
   const tourism = tags.tourism || ''
-  const leisure = tags.leisure || ''
 
   if (amenity === 'cafe' || amenity === 'coffee') return 'cafe'
   if (amenity === 'library') return 'library'
@@ -58,7 +39,6 @@ function mapOSMType(tags: Record<string, string>): string {
   if (amenity === 'bakery') return 'bakery'
   if (amenity === 'community_centre' || amenity === 'internet_cafe' || amenity === 'food_court') return 'coworking_space'
   if (tourism === 'hotel' || tourism === 'motel' || tourism === 'hostel') return 'hotel'
-  if (leisure === 'coworking_space' || leisure === 'community_centre') return 'coworking_space'
   return 'other'
 }
 
@@ -114,8 +94,4 @@ export async function searchNearbyPlaces(
     console.error('Failed to fetch places from Overpass:', error)
     return []
   }
-}
-
-export function getOSMPlaceId(place: OSMPlace): string {
-  return `osm-${place.id}`
 }
