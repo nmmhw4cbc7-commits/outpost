@@ -2,41 +2,64 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { Coordinates } from '../../lib/geo'
-import type { Spot } from '../../types'
+import type { OSMPlace } from '../../services/places'
 
 interface MapViewProps {
   center: Coordinates
-  spots: Spot[]
-  selectedSpotId: string | null
-  onSpotSelect: (id: string) => void
+  places: OSMPlace[]
+  selectedPlaceId: number | null
+  onPlaceSelect: (id: number) => void
   loading?: boolean
 }
 
-const createSpotIcon = (isSelected: boolean) => {
+const TYPE_COLORS: Record<string, string> = {
+  cafe: '#6a9e82',
+  library: '#4d7d64',
+  coworking_space: '#2d4a3e',
+  restaurant: '#d4a028',
+  university: '#3d6450',
+  hotel: '#8a6419',
+  bakery: '#b39d7d',
+  other: '#7d6a54'
+}
+
+const TYPE_ICONS: Record<string, string> = {
+  cafe: '☕',
+  library: '📚',
+  coworking_space: '💻',
+  restaurant: '🍽️',
+  university: '🎓',
+  hotel: '🏨',
+  bakery: '🥐',
+  other: '📍'
+}
+
+function createPlaceIcon(place: OSMPlace, isSelected: boolean) {
+  const color = TYPE_COLORS[place.type] || '#7d6a54'
+  const emoji = TYPE_ICONS[place.type] || '📍'
+  const size = isSelected ? 44 : 36
+
   return L.divIcon({
-    className: 'custom-marker',
+    className: 'place-marker',
     html: `
       <div style="
-        width: ${isSelected ? 40 : 32}px;
-        height: ${isSelected ? 40 : 32}px;
-        background: ${isSelected ? '#2d4a3e' : '#4d7d64'};
+        width: ${size}px;
+        height: ${size}px;
+        background: ${color};
         border: 3px solid white;
         border-radius: 50%;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: transform 0.2s ease;
+        font-size: ${isSelected ? 18 : 14}px;
+        transition: all 0.2s ease;
         transform: ${isSelected ? 'scale(1.2)' : 'scale(1)'};
-      ">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-          <circle cx="12" cy="10" r="3"/>
-        </svg>
-      </div>
+        cursor: pointer;
+      ">${emoji}</div>
     `,
-    iconSize: [isSelected ? 40 : 32, isSelected ? 40 : 32],
-    iconAnchor: [isSelected ? 20 : 16, isSelected ? 40 : 32]
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2]
   })
 }
 
@@ -50,15 +73,8 @@ const userIcon = L.divIcon({
       border: 3px solid white;
       border-radius: 50%;
       box-shadow: 0 0 0 4px rgba(77, 125, 100, 0.2), 0 2px 8px rgba(0,0,0,0.2);
-    ">
-      <div style="
-        width: 100%;
-        height: 100%;
-        background: #4d7d64;
-        border-radius: 50%;
-        animation: pulse 2s infinite;
-      "></div>
-    </div>
+      animation: pulse 2s infinite;
+    "></div>
     <style>
       @keyframes pulse {
         0% { box-shadow: 0 0 0 0 rgba(77, 125, 100, 0.4); }
@@ -73,22 +89,23 @@ const userIcon = L.divIcon({
 
 export function MapView({
   center,
-  spots,
-  selectedSpotId,
-  onSpotSelect,
+  places,
+  selectedPlaceId,
+  onPlaceSelect,
   loading
 }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const markersRef = useRef<L.Marker[]>([])
   const userMarkerRef = useRef<L.Marker | null>(null)
+  const popupsRef = useRef<L.Popup[]>([])
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return
 
     const map = L.map(mapRef.current, {
       center: [center.lat, center.lng],
-      zoom: 14,
+      zoom: 15,
       zoomControl: false,
       attributionControl: false
     })
@@ -125,41 +142,68 @@ export function MapView({
     const map = mapInstanceRef.current
     if (!map) return
 
-    markersRef.current.forEach((marker) => map.removeLayer(marker))
+    markersRef.current.forEach((m) => map.removeLayer(m))
+    popupsRef.current.forEach((p) => map.removeLayer(p))
     markersRef.current = []
+    popupsRef.current = []
 
-    spots.forEach((spot) => {
-      const isSelected = spot.id === selectedSpotId
-      const marker = L.marker([spot.latitude, spot.longitude], {
-        icon: createSpotIcon(isSelected)
+    places.forEach((place) => {
+      const isSelected = place.id === selectedPlaceId
+      const marker = L.marker([place.lat, place.lng], {
+        icon: createPlaceIcon(place, isSelected)
       })
         .addTo(map)
-        .on('click', () => onSpotSelect(spot.id))
+
+      const popupContent = `
+        <div style="min-width: 160px; font-family: Inter, sans-serif;">
+          <div style="font-weight: 600; font-size: 13px; color: #1f3329; margin-bottom: 4px;">
+            ${place.name}
+          </div>
+          <div style="font-size: 11px; color: #7d6a54; text-transform: capitalize;">
+            ${place.type.replace('_', ' ')}
+          </div>
+          ${place.address ? `<div style="font-size: 11px; color: #9a8468; margin-top: 2px;">${place.address}</div>` : ''}
+          ${place.opening_hours ? `<div style="font-size: 10px; color: #b39d7d; margin-top: 4px;">⏰ ${place.opening_hours}</div>` : ''}
+        </div>
+      `
+
+      const popup = L.popup({
+        closeButton: false,
+        className: 'place-popup',
+        offset: [0, -10]
+      })
+        .setLatLng([place.lat, place.lng])
+        .setContent(popupContent)
+
+      marker.on('click', () => {
+        onPlaceSelect(place.id)
+        popup.openOn(map)
+      })
 
       markersRef.current.push(marker)
+      popupsRef.current.push(popup)
     })
 
-    if (spots.length > 0 && !selectedSpotId) {
+    if (places.length > 0 && !selectedPlaceId) {
       const group = L.featureGroup(markersRef.current)
       map.fitBounds(group.getBounds().pad(0.1))
     }
-  }, [spots, selectedSpotId, onSpotSelect])
+  }, [places, selectedPlaceId, onPlaceSelect])
 
   useEffect(() => {
     const map = mapInstanceRef.current
-    if (!map || !selectedSpotId) return
+    if (!map || !selectedPlaceId) return
 
-    const spot = spots.find((s) => s.id === selectedSpotId)
-    if (spot) {
-      map.flyTo([spot.latitude, spot.longitude], 16, { duration: 0.5 })
+    const place = places.find((p) => p.id === selectedPlaceId)
+    if (place) {
+      map.flyTo([place.lat, place.lng], 16, { duration: 0.5 })
     }
-  }, [selectedSpotId, spots])
+  }, [selectedPlaceId, places])
 
   useEffect(() => {
     const map = mapInstanceRef.current
     if (!map) return
-
-    map.setView([center.lat, center.lng], 14)
+    map.setView([center.lat, center.lng], map.getZoom())
   }, [center])
 
   return (
