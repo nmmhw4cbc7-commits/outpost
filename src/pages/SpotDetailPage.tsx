@@ -76,7 +76,7 @@ export function SpotDetailPage() {
 
   const handleFavorite = async () => {
     if (!user || !id) {
-      navigate('/login')
+      setCheckinResult({ success: false, message: 'Sign in to save spots' })
       return
     }
     await toggleFavorite(user.id, id)
@@ -85,7 +85,7 @@ export function SpotDetailPage() {
 
   const handleCheckIn = async () => {
     if (!user || !id) {
-      navigate('/login')
+      setCheckinResult({ success: false, message: 'Sign in to check in' })
       return
     }
 

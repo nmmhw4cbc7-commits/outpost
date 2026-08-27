@@ -33,7 +33,10 @@ export function WriteReviewPage() {
   }, [id])
 
   const handleSubmit = async () => {
-    if (!user || !id || rating === 0) return
+    if (!user || !id || rating === 0) {
+      alert('Sign in to write reviews')
+      return
+    }
 
     setSubmitting(true)
     const review = await createReview({

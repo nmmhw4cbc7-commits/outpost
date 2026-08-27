@@ -13,7 +13,10 @@ export function PassportPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setLoading(false)
+      return
+    }
 
     const loadData = async () => {
       const [checkInsData, badgesData, statsData] = await Promise.all([
@@ -35,6 +38,25 @@ export function PassportPage() {
     return (
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-matcha-200 border-t-matcha-600 rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-beige-50 p-6">
+        <h1 className="font-serif text-2xl font-bold text-matcha-800 mb-1">
+          Field Passport
+        </h1>
+        <div className="mt-12 text-center">
+          <Stamp className="w-16 h-16 text-beige-300 mx-auto mb-4" />
+          <h3 className="font-serif text-lg font-semibold text-matcha-800 mb-2">
+            Sign in to view your passport
+          </h3>
+          <p className="text-sm text-beige-500">
+            Track your Larp journey, earn points, and collect badges.
+          </p>
+        </div>
       </div>
     )
   }
