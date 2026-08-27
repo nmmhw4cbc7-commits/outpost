@@ -3,8 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 
-const isProd = process.env.NODE_ENV === 'production'
-const basePath = isProd ? '/outpost/' : '/'
+const basePath = '/'
 
 export default defineConfig({
   plugins: [
