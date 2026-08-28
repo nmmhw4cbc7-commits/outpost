@@ -10,19 +10,21 @@ export interface OSMPlace {
   opening_hours?: string
   website?: string
   phone?: string
+  image_url?: string
   tags?: Record<string, string>
 }
 
 function mapOSMType(tags: Record<string, string>): string {
   const amenity = tags.amenity || ''
   const tourism = tags.tourism || ''
+  const office = tags.office || ''
 
   if (amenity === 'cafe' || amenity === 'coffee') return 'cafe'
   if (amenity === 'library') return 'library'
-  if (amenity === 'restaurant' || amenity === 'bar' || amenity === 'pub') return 'restaurant'
   if (amenity === 'university' || amenity === 'college' || amenity === 'school') return 'university'
-  if (amenity === 'bakery') return 'bakery'
   if (tourism === 'hotel' || tourism === 'motel' || tourism === 'hostel') return 'hotel'
+  if (office === 'coworking' || tags['office'] === 'coworking_space') return 'coworking_space'
+  if (amenity === 'coworking_space' || tags['amenity'] === 'coworking_space') return 'coworking_space'
   return 'other'
 }
 
@@ -49,19 +51,33 @@ function calculateDistance(a: Coordinates, b: Coordinates): number {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
 }
 
+function getImageUrl(tags: Record<string, string>, lat: number, lng: number): string {
+  if (tags.image) return tags.image
+  if (tags['wikimedia_commons']) {
+    const file = tags['wikimedia_commons'].replace('File:', '')
+    return `https://upload.wikimedia.org/wikipedia/commons/thumb/${file}/400px-${file}`
+  }
+  return `https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=400&height=300&center=lonlat:${lng},${lat}&zoom=16&apiKey=demo`
+}
+
 const OVERPASS_QUERIES = [
   (c: Coordinates, r: number) => `
 [out:json][timeout:25];
 (
-  node["amenity"~"cafe|coffee|restaurant|bar|pub|library|bakery|university|college|school"](around:${r},${c.lat},${c.lng});
-  way["amenity"~"cafe|coffee|restaurant|bar|pub|library|bakery|university|college|school"](around:${r},${c.lat},${c.lng});
+  node["amenity"~"cafe|coffee|library"](around:${r},${c.lat},${c.lng});
+  way["amenity"~"cafe|coffee|library"](around:${r},${c.lat},${c.lng});
+  node["amenity"~"university|college"](around:${r},${c.lat},${c.lng});
+  way["amenity"~"university|college"](around:${r},${c.lat},${c.lng});
   node["tourism"~"hotel|hostel|motel"](around:${r},${c.lat},${c.lng});
+  way["tourism"~"hotel|hostel|motel"](around:${r},${c.lat},${c.lng});
+  node["amenity"="coworking_space"](around:${r},${c.lat},${c.lng});
+  way["amenity"="coworking_space"](around:${r},${c.lat},${c.lng});
 );
 out body;
 `,
   (c: Coordinates, r: number) => `
 [out:json][timeout:25];
-node["amenity"~"cafe|coffee|restaurant|library|bakery"](around:${r},${c.lat},${c.lng});
+node["amenity"~"cafe|coffee|library|university|college"](around:${r},${c.lat},${c.lng});
 out body;
 `,
   (c: Coordinates, r: number) => `
@@ -122,6 +138,7 @@ export async function searchNearbyPlaces(
               opening_hours: el.tags.opening_hours,
               website: el.tags.website,
               phone: el.tags.phone,
+              image_url: getImageUrl(el.tags, el.lat, el.lon),
               tags: el.tags
             }))
             .filter((p: OSMPlace) => p.lat && p.lng)

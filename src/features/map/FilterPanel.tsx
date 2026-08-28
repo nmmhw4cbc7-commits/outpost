@@ -12,10 +12,8 @@ const spotTypeOptions: { value: SpotType; label: string }[] = [
   { value: 'cafe', label: 'Cafe' },
   { value: 'library', label: 'Library' },
   { value: 'coworking_space', label: 'Coworking' },
-  { value: 'restaurant', label: 'Restaurant' },
   { value: 'university', label: 'University' },
-  { value: 'hotel', label: 'Hotel' },
-  { value: 'bakery', label: 'Bakery' }
+  { value: 'hotel', label: 'Hotel' }
 ]
 
 const ratingOptions = [

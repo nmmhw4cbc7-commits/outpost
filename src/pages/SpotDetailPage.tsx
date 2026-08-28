@@ -13,7 +13,11 @@ import {
   Share2,
   Navigation,
   MessageSquare,
-  Camera
+  Camera,
+  Coffee,
+  BookOpen,
+  GraduationCap,
+  Building2
 } from 'lucide-react'
 import type { Spot, SpotMetadata, Review } from '../types'
 import { getSpotById, getSpotMetadata } from '../services/spots'
@@ -25,6 +29,24 @@ import { toggleFavorite, isFavorited } from '../services/favorites'
 import { performCheckIn } from '../services/checkins'
 import { useLocation } from '../hooks/useLocation'
 import { ReviewCard } from '../features/reviews/ReviewCard'
+
+const TYPE_PLACEHOLDER_COLORS: Record<string, string> = {
+  cafe: 'from-matcha-400 to-matcha-600',
+  library: 'from-emerald-400 to-emerald-600',
+  coworking_space: 'from-teal-400 to-teal-600',
+  university: 'from-green-400 to-green-600',
+  hotel: 'from-amber-400 to-amber-600',
+  other: 'from-stone-400 to-stone-600'
+}
+
+const TYPE_ICONS: Record<string, React.ReactNode> = {
+  cafe: <Coffee size={40} className="text-white/80" />,
+  library: <BookOpen size={40} className="text-white/80" />,
+  coworking_space: <Laptop size={40} className="text-white/80" />,
+  university: <GraduationCap size={40} className="text-white/80" />,
+  hotel: <Building2 size={40} className="text-white/80" />,
+  other: <MapPin size={40} className="text-white/80" />
+}
 
 export function SpotDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -117,7 +139,7 @@ export function SpotDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-beige-50 flex items-center justify-center">
+      <div className="min-h-screen bg-beige-50 flex items-center justify-center pb-20">
         <div className="w-8 h-8 border-4 border-matcha-200 border-t-matcha-600 rounded-full animate-spin" />
       </div>
     )
@@ -125,7 +147,7 @@ export function SpotDetailPage() {
 
   if (!spot) {
     return (
-      <div className="min-h-screen bg-beige-50 p-6">
+      <div className="min-h-screen bg-beige-50 p-6 pb-20">
         <button onClick={() => navigate(-1)} className="mb-4">
           <ArrowLeft size={24} className="text-matcha-600" />
         </button>
@@ -139,8 +161,11 @@ export function SpotDetailPage() {
     )
   }
 
+  const gradient = TYPE_PLACEHOLDER_COLORS[spot.place_type] || TYPE_PLACEHOLDER_COLORS.other
+  const typeIcon = TYPE_ICONS[spot.place_type] || TYPE_ICONS.other
+
   return (
-    <div className="min-h-screen bg-beige-50">
+    <div className="min-h-screen bg-beige-50 pb-20">
       <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-beige-200">
         <div className="flex items-center gap-4 p-4">
           <button onClick={() => navigate(-1)}>
@@ -161,12 +186,13 @@ export function SpotDetailPage() {
         </div>
       </div>
 
+      <div className={`h-48 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+        {typeIcon}
+      </div>
+
       <div className="p-4 space-y-6">
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-matcha-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <MapPin className="text-matcha-600" size={28} />
-            </div>
             <div className="flex-1">
               <h2 className="font-serif text-xl font-bold text-matcha-800">
                 {spot.name}
@@ -203,8 +229,8 @@ export function SpotDetailPage() {
               </>
             ) : (
               <>
-                <p className="text-5xl font-serif font-bold text-beige-300">
-                  --
+                <p className="text-5xl font-serif font-bold text-matcha-500">
+                  ---
                 </p>
                 <p className="text-sm text-beige-500 mt-2">
                   Not enough Larp data yet
@@ -316,12 +342,6 @@ export function SpotDetailPage() {
               {reviews.map((review) => (
                 <ReviewCard key={review.id} review={review} />
               ))}
-              <Link
-                to={`/spot/${id}/reviews`}
-                className="block text-center text-sm text-matcha-600 font-medium hover:text-matcha-700"
-              >
-                View all reviews
-              </Link>
             </div>
           )}
         </div>

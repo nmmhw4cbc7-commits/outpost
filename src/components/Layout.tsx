@@ -14,7 +14,7 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-beige-50 flex flex-col">
-      <main className="flex-1 pb-20">
+      <main className="flex-1">
         <Outlet />
       </main>
 

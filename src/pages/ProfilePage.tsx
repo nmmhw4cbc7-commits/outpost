@@ -2,10 +2,9 @@ import { useNavigate } from 'react-router-dom'
 import {
   Star,
   MapPin,
-  Settings,
   LogOut,
   ChevronRight,
-  Shield
+  User
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { signOut } from '../services/auth'
@@ -28,10 +27,18 @@ export function ProfilePage() {
 
         <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-matcha-100 flex items-center justify-center">
-              <span className="text-2xl font-serif font-bold text-matcha-600">
-                {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || '?'}
-              </span>
+            <div className="w-16 h-16 rounded-full bg-matcha-600 flex items-center justify-center flex-shrink-0">
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.username}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+              ) : (
+                <span className="text-2xl font-serif font-bold text-white">
+                  {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || <User size={28} />}
+                </span>
+              )}
             </div>
             <div>
               <h2 className="font-serif text-xl font-bold text-matcha-800">
@@ -53,16 +60,6 @@ export function ProfilePage() {
             label="Spots Visited"
             value="View History"
             onClick={() => navigate('/passport')}
-          />
-          <MenuItem
-            icon={<Shield className="text-matcha-500" size={20} />}
-            label="Privacy"
-            value=""
-          />
-          <MenuItem
-            icon={<Settings className="text-matcha-500" size={20} />}
-            label="Settings"
-            value=""
           />
         </div>
 

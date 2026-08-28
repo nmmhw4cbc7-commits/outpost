@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, MapPin, ChevronDown, Loader2 } from 'lucide-react'
+import { SEARCH_RADIUS_OPTIONS } from '../lib/config'
 import type { Coordinates } from '../lib/geo'
 import type { OSMPlace } from '../services/places'
 import { searchNearbyPlaces } from '../services/places'
@@ -61,7 +62,7 @@ export function ExplorePage({ location, locationLoading }: ExplorePageProps) {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
       <div className="p-4 bg-white/95 backdrop-blur-sm border-b border-beige-200 z-40 relative">
         <div className="flex items-center gap-3 mb-3">
           <div className="flex-1 relative">
@@ -84,9 +85,9 @@ export function ExplorePage({ location, locationLoading }: ExplorePageProps) {
           <div className="flex-1" />
           <button
             onClick={() => {
-              const options = [500, 1000, 2000, 5000]
-              const idx = options.indexOf(radius)
-              setRadius(options[(idx + 1) % options.length])
+              const values = SEARCH_RADIUS_OPTIONS.map(o => o.value) as number[]
+              const idx = values.indexOf(radius)
+              setRadius(values[(idx + 1) % values.length] as typeof radius)
             }}
             className="flex items-center gap-1 text-xs font-medium text-matcha-600 hover:text-matcha-700"
           >

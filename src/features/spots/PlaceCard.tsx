@@ -1,5 +1,14 @@
 import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import {
+  Loader2,
+  Coffee,
+  BookOpen,
+  Laptop,
+  GraduationCap,
+  Building2,
+  MapPin,
+  Clock
+} from 'lucide-react'
 import type { OSMPlace } from '../../services/places'
 
 interface PlaceCardProps {
@@ -13,22 +22,18 @@ const TYPE_LABELS: Record<string, string> = {
   cafe: 'Cafe',
   library: 'Library',
   coworking_space: 'Coworking',
-  restaurant: 'Restaurant',
   university: 'University',
   hotel: 'Hotel',
-  bakery: 'Bakery',
   other: 'Place'
 }
 
-const TYPE_EMOJIS: Record<string, string> = {
-  cafe: '☕',
-  library: '📚',
-  coworking_space: '💻',
-  restaurant: '🍽️',
-  university: '🎓',
-  hotel: '🏨',
-  bakery: '🥐',
-  other: '📍'
+const TYPE_ICONS: Record<string, React.ReactNode> = {
+  cafe: <Coffee size={18} className="text-matcha-600" />,
+  library: <BookOpen size={18} className="text-matcha-600" />,
+  coworking_space: <Laptop size={18} className="text-matcha-600" />,
+  university: <GraduationCap size={18} className="text-matcha-600" />,
+  hotel: <Building2 size={18} className="text-matcha-600" />,
+  other: <MapPin size={18} className="text-matcha-600" />
 }
 
 export function PlaceCard({ place, isSelected, onClick, onNavigate }: PlaceCardProps) {
@@ -53,8 +58,8 @@ export function PlaceCard({ place, isSelected, onClick, onNavigate }: PlaceCardP
       }`}
     >
       <div className="flex items-start gap-3">
-        <div className="w-12 h-12 bg-matcha-100 rounded-lg flex items-center justify-center flex-shrink-0 text-xl">
-          {navigating ? <Loader2 className="animate-spin text-matcha-600" size={20} /> : TYPE_EMOJIS[place.type] || '📍'}
+        <div className="w-12 h-12 bg-matcha-100 rounded-lg flex items-center justify-center flex-shrink-0">
+          {navigating ? <Loader2 className="animate-spin text-matcha-600" size={20} /> : TYPE_ICONS[place.type] || TYPE_ICONS.other}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-matcha-800 text-sm truncate">
@@ -69,8 +74,8 @@ export function PlaceCard({ place, isSelected, onClick, onNavigate }: PlaceCardP
             </p>
           )}
           {place.opening_hours && (
-            <p className="text-xs text-beige-400 truncate mt-0.5">
-              ⏰ {place.opening_hours}
+            <p className="text-xs text-beige-400 truncate mt-0.5 flex items-center gap-1">
+              <Clock size={10} /> {place.opening_hours}
             </p>
           )}
         </div>

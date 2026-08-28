@@ -22,11 +22,8 @@ export type SpotType =
   | 'cafe'
   | 'library'
   | 'coworking_space'
-  | 'restaurant'
   | 'university'
   | 'hotel'
-  | 'bakery'
-  | 'coffee_shop'
   | 'other'
 
 export interface SpotMetadata {
