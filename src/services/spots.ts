@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import type { Spot, SpotMetadata, FilterState } from '../types'
+import type { OSMPlace } from './places'
 
 export async function getSpotsNearby(
   lat: number,
@@ -56,6 +57,70 @@ export async function getSpotByGooglePlaceId(placeId: string): Promise<Spot | nu
   return data
 }
 
+export async function getSpotByOsmId(osmId: number): Promise<Spot | null> {
+  const { data, error } = await supabase
+    .from('spots')
+    .select('*')
+    .eq('osm_id', osmId)
+    .single()
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error fetching spot:', error)
+    return null
+  }
+
+  return data
+}
+
+export async function createSpot(spotData: {
+  google_place_id?: string | null
+  osm_id?: number | null
+  name: string
+  latitude: number
+  longitude: number
+  address?: string
+  city?: string
+  country?: string
+  place_type?: string
+}): Promise<Spot | null> {
+  const insertData = {
+    ...spotData,
+    google_place_id: spotData.google_place_id || null,
+    osm_id: spotData.osm_id || null
+  }
+
+  const conflictColumn = spotData.osm_id ? 'osm_id' : 'google_place_id'
+
+  const { data, error } = await supabase
+    .from('spots')
+    .upsert(insertData, { onConflict: conflictColumn })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating spot:', error)
+    return null
+  }
+
+  return data
+}
+
+export async function ensureSpotFromOSM(place: OSMPlace): Promise<Spot | null> {
+  const existing = await getSpotByOsmId(place.id)
+  if (existing) return existing
+
+  return createSpot({
+    osm_id: place.id,
+    name: place.name,
+    latitude: place.lat,
+    longitude: place.lng,
+    address: place.address || '',
+    city: '',
+    country: '',
+    place_type: place.type
+  })
+}
+
 export async function getSpotMetadata(spotId: string): Promise<SpotMetadata | null> {
   const { data, error } = await supabase
     .from('spot_metadata')
@@ -65,21 +130,6 @@ export async function getSpotMetadata(spotId: string): Promise<SpotMetadata | nu
 
   if (error && error.code !== 'PGRST116') {
     console.error('Error fetching metadata:', error)
-    return null
-  }
-
-  return data
-}
-
-export async function createSpot(spotData: Omit<Spot, 'id' | 'created_at' | 'updated_at'>): Promise<Spot | null> {
-  const { data, error } = await supabase
-    .from('spots')
-    .upsert(spotData, { onConflict: 'google_place_id' })
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Error creating spot:', error)
     return null
   }
 

@@ -327,12 +327,12 @@ export function SpotDetailPage() {
         </div>
 
         <a
-          href={`https://www.google.com/maps/place/?q=place_id:${spot.google_place_id}`}
+          href={`https://www.openstreetmap.org/?mlat=${spot.latitude}&mlon=${spot.longitude}#map=16/${spot.latitude}/${spot.longitude}`}
           target="_blank"
           rel="noopener noreferrer"
           className="block w-full text-center py-3 text-sm text-beige-500 hover:text-matcha-600 transition-colors"
         >
-          Open in Google Maps
+          Open in Maps
         </a>
       </div>
     </div>

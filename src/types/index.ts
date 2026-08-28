@@ -5,7 +5,8 @@ export interface Coordinates {
 
 export interface Spot {
   id: string
-  google_place_id: string
+  google_place_id: string | null
+  osm_id: number | null
   name: string
   latitude: number
   longitude: number

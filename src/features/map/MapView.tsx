@@ -9,6 +9,7 @@ interface MapViewProps {
   places: OSMPlace[]
   selectedPlaceId: number | null
   onPlaceSelect: (id: number) => void
+  onPlaceNavigate?: (place: OSMPlace) => void
   loading?: boolean
 }
 
@@ -92,6 +93,7 @@ export function MapView({
   places,
   selectedPlaceId,
   onPlaceSelect,
+  onPlaceNavigate,
   loading
 }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null)
@@ -164,6 +166,7 @@ export function MapView({
           </div>
           ${place.address ? `<div style="font-size: 11px; color: #9a8468; margin-top: 2px;">${place.address}</div>` : ''}
           ${place.opening_hours ? `<div style="font-size: 10px; color: #b39d7d; margin-top: 4px;">⏰ ${place.opening_hours}</div>` : ''}
+          ${onPlaceNavigate ? `<button onclick="window.__placeNavigate=${place.id}" style="margin-top: 6px; background: #6a9e82; color: white; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; width: 100%;">View Details</button>` : ''}
         </div>
       `
 
@@ -188,7 +191,7 @@ export function MapView({
       const group = L.featureGroup(markersRef.current)
       map.fitBounds(group.getBounds().pad(0.1))
     }
-  }, [places, selectedPlaceId, onPlaceSelect])
+  }, [places, selectedPlaceId, onPlaceSelect, onPlaceNavigate])
 
   useEffect(() => {
     const map = mapInstanceRef.current

@@ -1,9 +1,12 @@
+import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
 import type { OSMPlace } from '../../services/places'
 
 interface PlaceCardProps {
   place: OSMPlace
   isSelected: boolean
   onClick: () => void
+  onNavigate?: (place: OSMPlace) => void
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -28,10 +31,21 @@ const TYPE_EMOJIS: Record<string, string> = {
   other: '📍'
 }
 
-export function PlaceCard({ place, isSelected, onClick }: PlaceCardProps) {
+export function PlaceCard({ place, isSelected, onClick, onNavigate }: PlaceCardProps) {
+  const [navigating, setNavigating] = useState(false)
+
+  const handleClick = () => {
+    if (onNavigate) {
+      setNavigating(true)
+      onNavigate(place)
+    } else {
+      onClick()
+    }
+  }
+
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       className={`flex-shrink-0 w-64 bg-white rounded-xl shadow-md p-3 transition-all cursor-pointer ${
         isSelected
           ? 'ring-2 ring-matcha-500 shadow-lg'
@@ -40,7 +54,7 @@ export function PlaceCard({ place, isSelected, onClick }: PlaceCardProps) {
     >
       <div className="flex items-start gap-3">
         <div className="w-12 h-12 bg-matcha-100 rounded-lg flex items-center justify-center flex-shrink-0 text-xl">
-          {TYPE_EMOJIS[place.type] || '📍'}
+          {navigating ? <Loader2 className="animate-spin text-matcha-600" size={20} /> : TYPE_EMOJIS[place.type] || '📍'}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-matcha-800 text-sm truncate">

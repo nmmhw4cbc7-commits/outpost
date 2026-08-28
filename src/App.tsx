@@ -8,15 +8,12 @@ import { ProfilePage } from './pages/ProfilePage'
 import { LoginPage } from './pages/LoginPage'
 import { AuthCallbackPage } from './pages/AuthCallbackPage'
 import { WriteReviewPage } from './pages/WriteReviewPage'
-import { LocationPrompt } from './components/LocationPrompt'
 import { useLocation } from './hooks/useLocation'
 
 function AppContent() {
-  const { location, status, requestLocation } = useLocation()
+  const { location, status } = useLocation()
 
-  if (status === 'denied' || status === 'unavailable') {
-    return <LocationPrompt onRetry={requestLocation} status={status} />
-  }
+  const effectiveLocation = location || { lat: 52.52, lng: 13.405 }
 
   return (
     <Router>
@@ -28,7 +25,7 @@ function AppContent() {
             path="/"
             element={
               <ExplorePage
-                location={location}
+                location={effectiveLocation}
                 locationLoading={status === 'loading'}
               />
             }

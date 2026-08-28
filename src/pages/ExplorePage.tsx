@@ -1,8 +1,10 @@
 import { useState, useCallback, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Search, MapPin, ChevronDown, Loader2 } from 'lucide-react'
 import type { Coordinates } from '../lib/geo'
 import type { OSMPlace } from '../services/places'
 import { searchNearbyPlaces } from '../services/places'
+import { ensureSpotFromOSM } from '../services/spots'
 import { MapView } from '../features/map/MapView'
 import { PlaceCard } from '../features/spots/PlaceCard'
 
@@ -12,6 +14,7 @@ interface ExplorePageProps {
 }
 
 export function ExplorePage({ location, locationLoading }: ExplorePageProps) {
+  const navigate = useNavigate()
   const [places, setPlaces] = useState<OSMPlace[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -49,6 +52,13 @@ export function ExplorePage({ location, locationLoading }: ExplorePageProps) {
   const selectedPlace = selectedPlaceId
     ? places.find((p) => p.id === selectedPlaceId)
     : null
+
+  const handlePlaceNavigate = async (place: OSMPlace) => {
+    const spot = await ensureSpotFromOSM(place)
+    if (spot) {
+      navigate(`/spot/${spot.id}`)
+    }
+  }
 
   return (
     <div className="h-screen flex flex-col">
@@ -96,6 +106,7 @@ export function ExplorePage({ location, locationLoading }: ExplorePageProps) {
             places={filteredPlaces}
             selectedPlaceId={selectedPlaceId}
             onPlaceSelect={setSelectedPlaceId}
+            onPlaceNavigate={handlePlaceNavigate}
             loading={locationLoading}
           />
         </div>
@@ -107,6 +118,7 @@ export function ExplorePage({ location, locationLoading }: ExplorePageProps) {
                 place={selectedPlace}
                 isSelected={true}
                 onClick={() => {}}
+                onNavigate={handlePlaceNavigate}
               />
             </div>
           )}
@@ -119,6 +131,7 @@ export function ExplorePage({ location, locationLoading }: ExplorePageProps) {
                   place={place}
                   isSelected={false}
                   onClick={() => setSelectedPlaceId(place.id)}
+                  onNavigate={handlePlaceNavigate}
                 />
               ))}
             </div>

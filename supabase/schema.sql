@@ -19,10 +19,11 @@ CREATE TABLE profiles (
   points INTEGER DEFAULT 0 NOT NULL
 );
 
--- Spots (Core location data from Google Places)
+-- Spots (Core location data from OpenStreetMap)
 CREATE TABLE spots (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4() NOT NULL,
-  google_place_id TEXT UNIQUE NOT NULL,
+  google_place_id TEXT,
+  osm_id BIGINT UNIQUE,
   name TEXT NOT NULL,
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
@@ -35,6 +36,7 @@ CREATE TABLE spots (
 );
 
 CREATE INDEX idx_spots_google_place_id ON spots(google_place_id);
+CREATE INDEX idx_spots_osm_id ON spots(osm_id);
 CREATE INDEX idx_spots_location ON spots USING GIST (
   ST_Point(longitude, latitude)
 );
@@ -341,6 +343,7 @@ CREATE OR REPLACE FUNCTION get_spots_nearby(
 RETURNS TABLE (
   id UUID,
   google_place_id TEXT,
+  osm_id BIGINT,
   name TEXT,
   latitude DOUBLE PRECISION,
   longitude DOUBLE PRECISION,
@@ -356,6 +359,7 @@ BEGIN
   SELECT
     s.id,
     s.google_place_id,
+    s.osm_id,
     s.name,
     s.latitude,
     s.longitude,

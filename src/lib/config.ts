@@ -1,14 +1,3 @@
-export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
-
-export const isGoogleMapsConfigured = Boolean(GOOGLE_MAPS_API_KEY)
-
-export const DEFAULT_MAP_CENTER = {
-  lat: 52.520008,
-  lng: 13.404954
-}
-
-export const DEFAULT_ZOOM = 13
-
 export const SPOT_TYPES = [
   'cafe',
   'library',

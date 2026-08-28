@@ -13,21 +13,6 @@ export interface OSMPlace {
   tags?: Record<string, string>
 }
 
-function buildOverpassQuery(center: Coordinates, radiusMeters: number): string {
-  return `
-[out:json][timeout:25];
-(
-  nwr["amenity"~"cafe|coffee"](around:${radiusMeters},${center.lat},${center.lng});
-  nwr["amenity"="library"](around:${radiusMeters},${center.lat},${center.lng});
-  nwr["amenity"~"restaurant|bar|pub"](around:${radiusMeters},${center.lat},${center.lng});
-  nwr["amenity"~"university|college|school"](around:${radiusMeters},${center.lat},${center.lng});
-  nwr["amenity"="bakery"](around:${radiusMeters},${center.lat},${center.lng});
-  nwr["tourism"~"hotel|hostel|motel"](around:${radiusMeters},${center.lat},${center.lng});
-);
-out center tags;
-`
-}
-
 function mapOSMType(tags: Record<string, string>): string {
   const amenity = tags.amenity || ''
   const tourism = tags.tourism || ''
@@ -51,69 +36,112 @@ function formatAddress(tags: Record<string, string>): string {
   return parts.join(', ') || ''
 }
 
+function calculateDistance(a: Coordinates, b: Coordinates): number {
+  const R = 6371000
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180
+  const x =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((a.lat * Math.PI) / 180) *
+      Math.cos((b.lat * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2)
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
+}
+
+const OVERPASS_QUERIES = [
+  (c: Coordinates, r: number) => `
+[out:json][timeout:25];
+(
+  node["amenity"~"cafe|coffee|restaurant|bar|pub|library|bakery|university|college|school"](around:${r},${c.lat},${c.lng});
+  way["amenity"~"cafe|coffee|restaurant|bar|pub|library|bakery|university|college|school"](around:${r},${c.lat},${c.lng});
+  node["tourism"~"hotel|hostel|motel"](around:${r},${c.lat},${c.lng});
+);
+out body;
+`,
+  (c: Coordinates, r: number) => `
+[out:json][timeout:25];
+node["amenity"~"cafe|coffee|restaurant|library|bakery"](around:${r},${c.lat},${c.lng});
+out body;
+`,
+  (c: Coordinates, r: number) => `
+[out:json][timeout:25];
+node["amenity"="cafe"](around:${r},${c.lat},${c.lng});
+out body;
+`
+]
+
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
   'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
 ]
 
+async function tryOverpassQuery(query: string, endpoint: string, signal?: AbortSignal): Promise<any[]> {
+  const formData = new URLSearchParams()
+  formData.append('data', query)
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    body: formData,
+    signal
+  })
+
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+  const data = await response.json()
+  return data.elements || []
+}
+
 export async function searchNearbyPlaces(
   center: Coordinates,
   radiusMeters: number = 3000
 ): Promise<OSMPlace[]> {
-  const query = buildOverpassQuery(center, radiusMeters)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 20000)
 
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    try {
-      console.log(`[Outpost] Querying Overpass: ${endpoint}`)
-      console.log(`[Outpost] Center: ${center.lat}, ${center.lng}, Radius: ${radiusMeters}m`)
+  try {
+    for (const queryFn of OVERPASS_QUERIES) {
+      const query = queryFn(center, radiusMeters)
 
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 15000)
+      for (const endpoint of OVERPASS_ENDPOINTS) {
+        try {
+          const elements = await tryOverpassQuery(query, endpoint, controller.signal)
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: `data=${encodeURIComponent(query)}`,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        signal: controller.signal
-      })
+          if (elements.length === 0) continue
 
-      clearTimeout(timeout)
+          const places: OSMPlace[] = elements
+            .filter((el: any) => el.tags?.name)
+            .map((el: any) => ({
+              id: el.id,
+              name: el.tags.name,
+              lat: el.lat,
+              lng: el.lon,
+              type: mapOSMType(el.tags),
+              address: formatAddress(el.tags),
+              opening_hours: el.tags.opening_hours,
+              website: el.tags.website,
+              phone: el.tags.phone,
+              tags: el.tags
+            }))
+            .filter((p: OSMPlace) => p.lat && p.lng)
+            .filter((p: OSMPlace) => calculateDistance(center, p) <= radiusMeters)
+            .sort((a, b) => calculateDistance(center, a) - calculateDistance(center, b))
 
-      if (!response.ok) {
-        console.warn(`[Outpost] Overpass ${endpoint} returned ${response.status}`)
-        continue
+          if (places.length > 0) {
+            clearTimeout(timeout)
+            return places
+          }
+        } catch {
+          continue
+        }
       }
-
-      const data = await response.json()
-      console.log(`[Outpost] Got ${data.elements?.length || 0} elements`)
-
-      const places: OSMPlace[] = (data.elements || [])
-        .filter((el: any) => el.tags?.name)
-        .map((el: any) => ({
-          id: el.id,
-          name: el.tags.name,
-          lat: el.lat || el.center?.lat,
-          lng: el.lon || el.center?.lon,
-          type: mapOSMType(el.tags),
-          address: formatAddress(el.tags),
-          opening_hours: el.tags.opening_hours,
-          website: el.tags.website,
-          phone: el.tags.phone,
-          tags: el.tags
-        }))
-        .filter((p: OSMPlace) => p.lat && p.lng)
-
-      console.log(`[Outpost] Mapped ${places.length} places`)
-      return places
-    } catch (error: any) {
-      console.warn(`[Outpost] Overpass ${endpoint} failed:`, error.message)
-      continue
     }
-  }
 
-  console.error('[Outpost] All Overpass endpoints failed')
-  return []
+    clearTimeout(timeout)
+    return []
+  } catch {
+    clearTimeout(timeout)
+    return []
+  }
 }
