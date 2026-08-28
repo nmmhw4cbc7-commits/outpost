@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, memo } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { Coordinates } from '../../lib/geo'
@@ -9,7 +9,6 @@ interface MapViewProps {
   places: OSMPlace[]
   selectedPlaceId: number | null
   onPlaceSelect: (id: number) => void
-  onPlaceNavigate?: (place: OSMPlace) => void
   loading?: boolean
 }
 
@@ -31,9 +30,9 @@ const TYPE_SVG_ICONS: Record<string, string> = {
   other: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>'
 }
 
-function createPlaceIcon(place: OSMPlace, isSelected: boolean) {
-  const color = TYPE_COLORS[place.type] || '#7d6a54'
-  const svg = TYPE_SVG_ICONS[place.type] || TYPE_SVG_ICONS.other
+function createPlaceIcon(type: string, isSelected: boolean) {
+  const color = TYPE_COLORS[type] || '#7d6a54'
+  const svg = TYPE_SVG_ICONS[type] || TYPE_SVG_ICONS.other
   const size = isSelected ? 44 : 36
 
   return L.divIcon({
@@ -49,7 +48,7 @@ function createPlaceIcon(place: OSMPlace, isSelected: boolean) {
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
+        transition: transform 0.2s ease;
         transform: ${isSelected ? 'scale(1.2)' : 'scale(1)'};
         cursor: pointer;
       ">${svg}</div>
@@ -83,20 +82,21 @@ const userIcon = L.divIcon({
   iconAnchor: [10, 10]
 })
 
-export function MapView({
+function MapViewInner({
   center,
   places,
   selectedPlaceId,
   onPlaceSelect,
-  onPlaceNavigate,
   loading
 }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
-  const markersRef = useRef<L.Marker[]>([])
+  const markersRef = useRef<Map<number, L.Marker>>(new Map())
   const userMarkerRef = useRef<L.Marker | null>(null)
-  const navigateRef = useRef(onPlaceNavigate)
-  navigateRef.current = onPlaceNavigate
+  const selectedIdRef = useRef(selectedPlaceId)
+  const onPlaceSelectRef = useRef(onPlaceSelect)
+  onPlaceSelectRef.current = onPlaceSelect
+  selectedIdRef.current = selectedPlaceId
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return
@@ -140,28 +140,41 @@ export function MapView({
     const map = mapInstanceRef.current
     if (!map) return
 
-    markersRef.current.forEach((m) => map.removeLayer(m))
-    markersRef.current = []
+    const currentIds = new Set(places.map(p => p.id))
+    markersRef.current.forEach((marker, id) => {
+      if (!currentIds.has(id)) {
+        map.removeLayer(marker)
+        markersRef.current.delete(id)
+      }
+    })
 
     places.forEach((place) => {
       const isSelected = place.id === selectedPlaceId
-      const marker = L.marker([place.lat, place.lng], {
-        icon: createPlaceIcon(place, isSelected)
-      })
-        .addTo(map)
+      const existing = markersRef.current.get(place.id)
 
-      marker.on('click', () => {
-        onPlaceSelect(place.id)
-      })
+      if (existing) {
+        existing.setIcon(createPlaceIcon(place.type, isSelected))
+      } else {
+        const marker = L.marker([place.lat, place.lng], {
+          icon: createPlaceIcon(place.type, isSelected)
+        }).addTo(map)
 
-      markersRef.current.push(marker)
+        marker.on('click', () => {
+          onPlaceSelectRef.current(place.id)
+        })
+
+        markersRef.current.set(place.id, marker)
+      }
     })
 
     if (places.length > 0 && !selectedPlaceId) {
-      const group = L.featureGroup(markersRef.current)
-      map.fitBounds(group.getBounds().pad(0.1))
+      const allMarkers = Array.from(markersRef.current.values())
+      if (allMarkers.length > 0) {
+        const group = L.featureGroup(allMarkers)
+        map.fitBounds(group.getBounds().pad(0.1))
+      }
     }
-  }, [places, selectedPlaceId, onPlaceSelect])
+  }, [places, selectedPlaceId])
 
   useEffect(() => {
     const map = mapInstanceRef.current
@@ -186,3 +199,5 @@ export function MapView({
     />
   )
 }
+
+export default memo(MapViewInner)

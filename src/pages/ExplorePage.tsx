@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, MapPin, ChevronDown, Loader2 } from 'lucide-react'
 import { SEARCH_RADIUS_OPTIONS } from '../lib/config'
@@ -6,8 +6,8 @@ import type { Coordinates } from '../lib/geo'
 import type { OSMPlace } from '../services/places'
 import { searchNearbyPlaces } from '../services/places'
 import { ensureSpotFromOSM } from '../services/spots'
-import { MapView } from '../features/map/MapView'
-import { PlaceCard } from '../features/spots/PlaceCard'
+import MapView from '../features/map/MapView'
+import SpotPreviewPanel from '../features/spots/SpotPreviewPanel'
 
 interface ExplorePageProps {
   location: Coordinates | null
@@ -24,7 +24,6 @@ export function ExplorePage({ location, locationLoading }: ExplorePageProps) {
 
   const loadPlaces = useCallback(async () => {
     if (!location) return
-
     setLoading(true)
     try {
       const nearbyPlaces = await searchNearbyPlaces(location, radius)
@@ -40,26 +39,26 @@ export function ExplorePage({ location, locationLoading }: ExplorePageProps) {
     loadPlaces()
   }, [loadPlaces])
 
-  const filteredPlaces = places.filter((place) => {
-    if (!searchQuery) return true
+  const filteredPlaces = useMemo(() => {
+    if (!searchQuery) return places
     const query = searchQuery.toLowerCase()
-    return (
+    return places.filter((place) =>
       place.name.toLowerCase().includes(query) ||
       place.type.toLowerCase().includes(query) ||
       place.address?.toLowerCase().includes(query)
     )
-  })
+  }, [places, searchQuery])
 
-  const selectedPlace = selectedPlaceId
-    ? places.find((p) => p.id === selectedPlaceId)
-    : null
+  const selectedPlace = useMemo(
+    () => selectedPlaceId ? places.find((p) => p.id === selectedPlaceId) ?? null : null,
+    [places, selectedPlaceId]
+  )
 
-  const handlePlaceNavigate = async (place: OSMPlace) => {
-    const spot = await ensureSpotFromOSM(place)
-    if (spot) {
-      navigate(`/spot/${spot.id}`)
-    }
-  }
+  const handleOpenFull = useCallback(async () => {
+    if (!selectedPlace) return
+    const spot = await ensureSpotFromOSM(selectedPlace)
+    if (spot) navigate(`/spot/${spot.id}`)
+  }, [selectedPlace, navigate])
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
@@ -107,53 +106,26 @@ export function ExplorePage({ location, locationLoading }: ExplorePageProps) {
             places={filteredPlaces}
             selectedPlaceId={selectedPlaceId}
             onPlaceSelect={setSelectedPlaceId}
-            onPlaceNavigate={handlePlaceNavigate}
             loading={locationLoading}
           />
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-none">
-          {selectedPlace && (
-            <div className="pointer-events-auto">
-              <PlaceCard
-                place={selectedPlace}
-                isSelected={true}
-                onClick={() => {}}
-                onNavigate={handlePlaceNavigate}
-              />
-            </div>
-          )}
+        {selectedPlace && (
+          <SpotPreviewPanel
+            place={selectedPlace}
+            userLocation={location}
+            onClose={() => setSelectedPlaceId(null)}
+            onOpenFull={handleOpenFull}
+            loading={loading}
+          />
+        )}
 
-          {!selectedPlace && filteredPlaces.length > 0 && (
-            <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide pointer-events-auto">
-              {filteredPlaces.slice(0, 6).map((place) => (
-                <PlaceCard
-                  key={place.id}
-                  place={place}
-                  isSelected={false}
-                  onClick={() => setSelectedPlaceId(place.id)}
-                  onNavigate={handlePlaceNavigate}
-                />
-              ))}
-            </div>
-          )}
-
-          {!loading && location && filteredPlaces.length === 0 && (
-            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 text-center pointer-events-auto">
-              <p className="text-matcha-700 font-medium">No Larp Spots nearby</p>
-              <p className="text-sm text-beige-500 mt-1">
-                Try expanding your search radius.
-              </p>
-            </div>
-          )}
-
-          {loading && !selectedPlace && (
-            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 flex items-center justify-center gap-3 pointer-events-auto">
-              <div className="w-5 h-5 border-2 border-matcha-200 border-t-matcha-600 rounded-full animate-spin" />
-              <span className="text-sm text-matcha-600">Finding Larp Spots...</span>
-            </div>
-          )}
-        </div>
+        {!selectedPlace && !loading && location && filteredPlaces.length === 0 && (
+          <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl p-6 text-center z-30">
+            <p className="text-matcha-700 font-medium">No Larp Spots nearby</p>
+            <p className="text-sm text-beige-500 mt-1">Try expanding your search radius.</p>
+          </div>
+        )}
       </div>
     </div>
   )
